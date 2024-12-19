@@ -1,11 +1,14 @@
 package net.demo.project.springbootemployeerepo.repositories;
 
+import net.demo.project.springbootemployeerepo.model.Address;
 import net.demo.project.springbootemployeerepo.model.Employee;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,36 +18,129 @@ public class EmployeeDao {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    // Method to get all products
-    public List<Map<String, Object>> getAllEmployees() {
-        String sql = "SELECT * FROM employees";  // SQL query to fetch all products
-        return jdbcTemplate.queryForList(sql);  // Execute SQL and return results
+    public List<Employee> getAllEmployees() {
+        String sql = "SELECT e.id AS employee_id, e.name, e.age, e.salary, e.email, " +
+                "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type " +
+                "FROM employees e " +
+                "LEFT JOIN address a ON e.id = a.employee_id";
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+
+        return groupEmployeesWithAddresses(rows);
+    }
+    private List<Employee> groupEmployeesWithAddresses(List<Map<String, Object>> rows) {
+        Map<Integer, Employee> employeeMap = new HashMap<>();
+
+        for (Map<String, Object> row : rows) {
+            int employeeId = (Integer) row.get("employee_id");
+            Employee employee = employeeMap.get(employeeId);
+
+            if (employee == null) {
+                // Create a new Employee object if it's not already in the map
+                employee = new Employee();
+                employee.setName((String) row.get("name"));
+                employee.setAge((Integer) row.get("age"));
+                employee.setSalary((Integer) row.get("salary"));
+                employee.setEmail((String) row.get("email"));
+                employee.setAddresses(new ArrayList<>());
+                employeeMap.put(employeeId, employee);
+            }
+
+            // Create the Address object and add it to the employee's list of addresses
+            Address address = new Address();
+            address.setStreet((String) row.get("street"));
+            address.setCity((String) row.get("city"));
+            address.setState((String) row.get("state"));
+            address.setZipCode((Integer) row.get("zip_code"));
+            address.setNumber((String) row.get("phone_number"));
+            address.setAddressType((String) row.get("address_type"));
+
+            employee.getAddresses().add(address);
+        }
+
+        return new ArrayList<>(employeeMap.values());
     }
 
-    // Method to get a product by its ID
-    public Map<String, Object> getEmployeeById(int id) {
-        String sql = "SELECT * FROM employees WHERE id = ?";
-        try {
-            return jdbcTemplate.queryForMap(sql, id);  // Return single employee as a map
-        } catch (EmptyResultDataAccessException e) {
-            return null;  // Return null if no result found
-        }  // Return single product as a map
+    public Employee getEmployeeById(int id) {
+        // SQL query to fetch the employee and their associated addresses
+        String sql = "SELECT e.id AS employee_id, e.name, e.age, e.salary, e.email, " +
+                "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type " +
+                "FROM employees e " +
+                "LEFT JOIN address a ON e.id = a.employee_id " +
+                "WHERE e.id = ?";
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, id);
+
+        // If no rows are returned, return null (no employee found)
+        if (rows.isEmpty()) {
+            return null;
+        }
+
+        // Now, process the results and map them into an Employee object with its associated addresses
+        return mapEmployeeWithAddresses(rows);
     }
 
-    // Method to insert a new employee into the database
+    private Employee mapEmployeeWithAddresses(List<Map<String, Object>> rows) {
+        // The employee object to return
+        Employee employee = new Employee();
+
+        // Since we are joining employees with addresses, each row could represent one employee with one address
+        // We need to handle this by populating the Employee object and its associated Addresses
+        for (Map<String, Object> row : rows) {
+            // First, set employee details
+            employee.setName((String) row.get("name"));
+            employee.setAge((Integer) row.get("age"));
+            employee.setSalary((Integer) row.get("salary"));
+            employee.setEmail((String) row.get("email"));
+
+            // Initialize the addresses list if not already done
+            if (employee.getAddresses() == null) {
+                employee.setAddresses(new ArrayList<>());
+            }
+
+            // Add the address to the employee
+            Address address = new Address();
+            address.setStreet((String) row.get("street"));
+            address.setCity((String) row.get("city"));
+            address.setState((String) row.get("state"));
+            address.setZipCode((Integer) row.get("zip_code"));
+            address.setNumber((String) row.get("phone_number"));
+            address.setAddressType((String) row.get("address_type"));
+
+            employee.getAddresses().add(address);
+        }
+
+        return employee;
+    }
+
     public boolean insertEmployee(Employee employee) {
         String sql = "INSERT INTO employees (name, age, salary, email) VALUES (?, ?, ?, ?)";
         try {
-            // Execute insert SQL query
+            // Insert the employee into the database
             int rowsAffected = jdbcTemplate.update(sql, employee.getName(), employee.getAge(),
                     employee.getSalary(), employee.getEmail());
 
-            // If one row is inserted, return true
-            return rowsAffected == 1;
+            // Assuming that the insert is successful, now get the generated employee ID
+            if (rowsAffected == 1) {
+                int employeeId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Integer.class);
+
+                // Insert the addresses for this employee
+                for (Address address : employee.getAddresses()) {
+                    String addressSql = "INSERT INTO address (street, city, state, zip_code, phone_number, address_type, employee_id) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    jdbcTemplate.update(addressSql, address.getStreet(), address.getCity(), address.getState(),
+                            address.getZipCode(), address.getNumber(), address.getAddressType(), employeeId);
+                }
+
+                return true;
+            }
         } catch (Exception e) {
-            return false;  // Return false in case of any error
+            e.printStackTrace();
         }
+        return false;
     }
+
+
 
     // Method to update an employee's details
     public boolean updateEmployee(int id, Employee employee) {

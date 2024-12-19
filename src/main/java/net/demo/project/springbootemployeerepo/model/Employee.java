@@ -1,5 +1,7 @@
 package net.demo.project.springbootemployeerepo.model;
 
+import java.util.List;
+
 /**
  * The {@code Employee} class represents an employee with attributes such as age, name, salary, email,
  *
@@ -29,7 +31,8 @@ public class Employee {
      */
     private String email;
 
-
+    // List of addresses for the employee
+    private List<Address> addresses;
     /**
      * Sets the salary of the employee.
      *
@@ -57,6 +60,7 @@ public class Employee {
         this.age = age;
     }
 
+    public void setAddresses(List<Address> addresses) { this.addresses = addresses; }
     /**
      * Sets the email address of the employee.
      *
@@ -101,6 +105,7 @@ public class Employee {
     public int getSalary() {
         return salary;
     }
+    public List<Address> getAddresses() { return addresses; }
 
 
 }

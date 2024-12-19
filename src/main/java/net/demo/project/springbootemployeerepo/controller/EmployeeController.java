@@ -19,23 +19,21 @@ public class EmployeeController {
 
     // HTTP GET request to get all employees
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllEmployees() {
+    public ResponseEntity<List<Employee>> getAllEmployees() {
         return new ResponseEntity<>(employeeDao.getAllEmployees(), HttpStatus.OK);
     }
 
     // HTTP GET request to get an employee by ID
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getEmployeeById(@PathVariable int id) {
-        Map<String, Object> employee = employeeDao.getEmployeeById(id);  // Call DAO to fetch employee by ID
+    public ResponseEntity<Employee> getEmployeeById(@PathVariable int id) {
+        Employee employee = employeeDao.getEmployeeById(id);  // Call DAO to fetch employee by ID
 
         if (employee == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // Return 404 if employee not found
         }
-        /**
-         *   ResponseEntity is a generic class in Spring that represents the entire HTTP response,
-         *   including the body, headers, and status code.
-         */
-        return new ResponseEntity<>(employee, HttpStatus.OK);  // Return 200 OK with employee data
+
+        // Return 200 OK with the employee data
+        return new ResponseEntity<>(employee, HttpStatus.OK);
     }
 
     // HTTP POST request to create a new employee
@@ -55,7 +53,7 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<Employee> updateEmployee(@PathVariable int id, @RequestBody Employee employee) {
         // Check if the employee exists first
-        Map<String, Object> existingEmployee = employeeDao.getEmployeeById(id);
+        Map<String, Object> existingEmployee = (Map<String, Object>) employeeDao.getEmployeeById(id);
         if (existingEmployee == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // Return 404 if employee not found
         }
@@ -72,7 +70,7 @@ public class EmployeeController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployee(@PathVariable int id) {
         // Check if the employee exists first
-        Map<String, Object> existingEmployee = employeeDao.getEmployeeById(id);
+        Map<String, Object> existingEmployee = (Map<String, Object>) employeeDao.getEmployeeById(id);
         if (existingEmployee == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // Return 404 if employee not found
         }
