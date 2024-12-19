@@ -18,6 +18,7 @@ public class EmployeeDao {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+
     public List<Employee> getAllEmployees() {
         String sql = "SELECT e.id AS employee_id, e.name, e.age, e.salary, e.email, " +
                 "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type " +
@@ -28,6 +29,7 @@ public class EmployeeDao {
 
         return groupEmployeesWithAddresses(rows);
     }
+
     private List<Employee> groupEmployeesWithAddresses(List<Map<String, Object>> rows) {
         Map<Integer, Employee> employeeMap = new HashMap<>();
 
@@ -46,20 +48,22 @@ public class EmployeeDao {
                 employeeMap.put(employeeId, employee);
             }
 
-            // Create the Address object and add it to the employee's list of addresses
-            Address address = new Address();
-            address.setStreet((String) row.get("street"));
-            address.setCity((String) row.get("city"));
-            address.setState((String) row.get("state"));
-            address.setZipCode((Integer) row.get("zip_code"));
-            address.setNumber((String) row.get("phone_number"));
-            address.setAddressType((String) row.get("address_type"));
-
-            employee.getAddresses().add(address);
+            // Check if address is not null before creating an Address object
+            if (row.get("address_id") != null) {
+                Address address = new Address();
+                address.setStreet((String) row.get("street"));
+                address.setCity((String) row.get("city"));
+                address.setState((String) row.get("state"));
+                address.setZipCode((Integer) row.get("zip_code"));
+                address.setNumber((String) row.get("phone_number"));
+                address.setAddressType((String) row.get("address_type"));
+                employee.getAddresses().add(address);
+            }
         }
 
         return new ArrayList<>(employeeMap.values());
     }
+
 
     public Employee getEmployeeById(int id) {
         // SQL query to fetch the employee and their associated addresses

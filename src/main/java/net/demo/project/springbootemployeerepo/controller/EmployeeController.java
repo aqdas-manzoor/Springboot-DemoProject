@@ -16,8 +16,6 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeDao employeeDao;
-
-    // HTTP GET request to get all employees
     @GetMapping
     public ResponseEntity<List<Employee>> getAllEmployees() {
         return new ResponseEntity<>(employeeDao.getAllEmployees(), HttpStatus.OK);
