@@ -11,11 +11,12 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/employees")  // Base URL for product-related endpoints
+@RequestMapping("/employees")  // Base URL for employee-related endpoints
 public class EmployeeController {
 
     @Autowired
     private EmployeeDao employeeDao;
+
     @GetMapping
     public ResponseEntity<List<Employee>> getAllEmployees() {
         return new ResponseEntity<>(employeeDao.getAllEmployees(), HttpStatus.OK);
@@ -47,38 +48,53 @@ public class EmployeeController {
         }
     }
 
-    // HTTP PUT request to update an existing employee by ID
     @PutMapping("/{id}")
     public ResponseEntity<Employee> updateEmployee(@PathVariable int id, @RequestBody Employee employee) {
-        // Check if the employee exists first
-        Map<String, Object> existingEmployee = (Map<String, Object>) employeeDao.getEmployeeById(id);
+        // First, check if the employee exists
+        Employee existingEmployee = employeeDao.getEmployeeById(id);
         if (existingEmployee == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // Return 404 if employee not found
         }
 
-        // If employee exists, update the details
-        boolean isUpdated = employeeDao.updateEmployee(id, employee);
-        if (isUpdated) {
-            return new ResponseEntity<>(employee, HttpStatus.OK);  // Return 200 OK if updated
-        } else {
+        // Update the employee's core details (name, age, salary, email)
+        boolean isUpdated = employeeDao.updateEmployeeDetails(id, employee);
+        if (!isUpdated) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if update fails
         }
+
+        // Update the employee's addresses
+        boolean isAddressUpdated = employeeDao.updateEmployeeAddresses(id, employee.getAddresses());
+        if (!isAddressUpdated) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if address update fails
+        }
+
+        // Return 200 OK with the updated employee data
+        return new ResponseEntity<>(employee, HttpStatus.OK);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployee(@PathVariable int id) {
-        // Check if the employee exists first
-        Map<String, Object> existingEmployee = (Map<String, Object>) employeeDao.getEmployeeById(id);
+        // Check if the employee exists
+        Employee existingEmployee = employeeDao.getEmployeeById(id);
         if (existingEmployee == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // Return 404 if employee not found
         }
 
-        // Attempt to delete the employee
-        boolean isDeleted = employeeDao.deleteEmployee(id);
-        if (isDeleted) {
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);  // Return 204 No Content on successful deletion
-        } else {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if deletion fails
+        // Delete the employee's associated addresses
+        boolean isAddressesDeleted = employeeDao.deleteEmployeeAddresses(id);
+        if (!isAddressesDeleted) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if deleting addresses fails
         }
+
+        // Delete the employee's core information
+        boolean isEmployeeDeleted = employeeDao.deleteEmployee(id);
+        if (!isEmployeeDeleted) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if deleting employee fails
+        }
+
+        // Return 204 No Content on successful deletion
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
 }

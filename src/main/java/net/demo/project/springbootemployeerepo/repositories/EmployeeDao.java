@@ -144,10 +144,7 @@ public class EmployeeDao {
         return false;
     }
 
-
-
-    // Method to update an employee's details
-    public boolean updateEmployee(int id, Employee employee) {
+    public boolean updateEmployeeDetails(int id, Employee employee) {
         String sql = "UPDATE employees SET name = ?, age = ?, salary = ?, email = ? WHERE id = ?";
         try {
             int rowsAffected = jdbcTemplate.update(sql, employee.getName(), employee.getAge(),
@@ -158,15 +155,42 @@ public class EmployeeDao {
             return false;
         }
     }
+    public boolean updateEmployeeAddresses(int id, List<Address> addresses) {
+        // First, delete existing addresses for the employee
+        String deleteSql = "DELETE FROM address WHERE employee_id = ?";
+        jdbcTemplate.update(deleteSql, id);  // Remove existing addresses
 
+        // Now, insert the new addresses provided in the request
+        String insertSql = "INSERT INTO address (street, city, state, zip_code, phone_number, address_type, employee_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        for (Address address : addresses) {
+            jdbcTemplate.update(insertSql, address.getStreet(), address.getCity(), address.getState(),
+                    address.getZipCode(), address.getNumber(), address.getAddressType(), id);
+        }
+
+        return true;  // Return true if addresses are successfully updated
+    }
+    public boolean deleteEmployeeAddresses(int id) {
+        String sql = "DELETE FROM address WHERE employee_id = ?";
+        try {
+            int rowsAffected = jdbcTemplate.update(sql, id);
+            return rowsAffected >= 1;  // Return true if one or more rows were deleted
+        } catch (Exception e) {
+            e.printStackTrace();  // Print error for debugging
+            return false;
+        }
+    }
     public boolean deleteEmployee(int id) {
         String sql = "DELETE FROM employees WHERE id = ?";
         try {
             int rowsAffected = jdbcTemplate.update(sql, id);
-            return rowsAffected > 0;  // Return true if one row was deleted
+            return rowsAffected == 1;  // Return true if exactly one row was deleted
         } catch (Exception e) {
             e.printStackTrace();
-            return false;  // Return false if an error occurred
+            return false;  // Return false if there was an error
         }
     }
+
+
 }
