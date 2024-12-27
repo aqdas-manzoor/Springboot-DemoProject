@@ -38,13 +38,12 @@ public class EmployeeController {
     // HTTP POST request to create a new employee
     @PostMapping
     public ResponseEntity<Employee> createEmployee(@RequestBody Employee employee) {
-        // Insert the new employee into the database
         boolean isInserted = employeeDao.insertEmployee(employee);
 
         if (isInserted) {
-            return new ResponseEntity<>(employee, HttpStatus.CREATED);  // Return 201 Created with employee data
+            return new ResponseEntity<>(employee, HttpStatus.CREATED);
         } else {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if insertion fails
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

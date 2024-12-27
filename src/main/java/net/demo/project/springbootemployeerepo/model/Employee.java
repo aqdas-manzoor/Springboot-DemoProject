@@ -107,5 +107,13 @@ public class Employee {
     }
     public List<Address> getAddresses() { return addresses; }
 
+    private List<Department> departments;  // Many-to-many relationship with Department
 
+    // Getters and setters for all fields including addresses and departments
+    public List<Department> getDepartments() {
+        return departments;
+    }
+    public void setDepartments(List<Department> departments) {
+        this.departments = departments;
+    }
 }

@@ -1,6 +1,7 @@
 package net.demo.project.springbootemployeerepo.repositories;
 
 import net.demo.project.springbootemployeerepo.model.Address;
+import net.demo.project.springbootemployeerepo.model.Department;
 import net.demo.project.springbootemployeerepo.model.Employee;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -117,23 +118,28 @@ public class EmployeeDao {
         return employee;
     }
 
+
     public boolean insertEmployee(Employee employee) {
         String sql = "INSERT INTO employees (name, age, salary, email) VALUES (?, ?, ?, ?)";
         try {
-            // Insert the employee into the database
             int rowsAffected = jdbcTemplate.update(sql, employee.getName(), employee.getAge(),
                     employee.getSalary(), employee.getEmail());
 
-            // Assuming that the insert is successful, now get the generated employee ID
             if (rowsAffected == 1) {
                 int employeeId = jdbcTemplate.queryForObject("SELECT LAST_INSERT_ID()", Integer.class);
 
-                // Insert the addresses for this employee
+                // Insert addresses
                 for (Address address : employee.getAddresses()) {
                     String addressSql = "INSERT INTO address (street, city, state, zip_code, phone_number, address_type, employee_id) " +
                             "VALUES (?, ?, ?, ?, ?, ?, ?)";
                     jdbcTemplate.update(addressSql, address.getStreet(), address.getCity(), address.getState(),
                             address.getZipCode(), address.getNumber(), address.getAddressType(), employeeId);
+                }
+
+                // Insert into employee_department (many-to-many association)
+                for (Department department : employee.getDepartments()) {
+                    String departmentSql = "INSERT INTO employee_departments (employee_id, department_id) VALUES (?, ?)";
+                    jdbcTemplate.update(departmentSql, employeeId, department.getId());
                 }
 
                 return true;
@@ -144,7 +150,8 @@ public class EmployeeDao {
         return false;
     }
 
-    public boolean updateEmployeeDetails(int id, Employee employee) {
+
+public boolean updateEmployeeDetails(int id, Employee employee) {
         String sql = "UPDATE employees SET name = ?, age = ?, salary = ?, email = ? WHERE id = ?";
         try {
             int rowsAffected = jdbcTemplate.update(sql, employee.getName(), employee.getAge(),
