@@ -67,6 +67,12 @@ public class EmployeeController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if address update fails
         }
 
+        // Update the employee's departments
+        boolean isDepartmentUpdated = employeeDao.updateEmployeeDepartments(id, employee.getDepartments());
+        if (!isDepartmentUpdated) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if department update fails
+        }
+
         // Return 200 OK with the updated employee data
         return new ResponseEntity<>(employee, HttpStatus.OK);
     }
@@ -78,6 +84,12 @@ public class EmployeeController {
         Employee existingEmployee = employeeDao.getEmployeeById(id);
         if (existingEmployee == null) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);  // Return 404 if employee not found
+        }
+
+        // Delete the employee's associated departments
+        boolean isDepartmentsDeleted = employeeDao.deleteEmployeeDepartments(id);
+        if (!isDepartmentsDeleted) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);  // Return 500 if deleting departments fails
         }
 
         // Delete the employee's associated addresses
@@ -95,5 +107,7 @@ public class EmployeeController {
         // Return 204 No Content on successful deletion
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+
 
 }

@@ -22,16 +22,19 @@ public class EmployeeDao {
 
     public List<Employee> getAllEmployees() {
         String sql = "SELECT e.id AS employee_id, e.name, e.age, e.salary, e.email, " +
-                "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type " +
+                "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type, " +
+                "d.id AS department_id, d.department_name, d.department_email, d.department_description " +
                 "FROM employees e " +
-                "LEFT JOIN address a ON e.id = a.employee_id";
+                "LEFT JOIN address a ON e.id = a.employee_id " +
+                "LEFT JOIN employee_departments ed ON e.id = ed.employee_id " +
+                "LEFT JOIN departments d ON ed.department_id = d.id";
 
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
 
-        return groupEmployeesWithAddresses(rows);
+        return groupEmployeesWithAddressesAndDepartments(rows);
     }
 
-    private List<Employee> groupEmployeesWithAddresses(List<Map<String, Object>> rows) {
+    private List<Employee> groupEmployeesWithAddressesAndDepartments(List<Map<String, Object>> rows) {
         Map<Integer, Employee> employeeMap = new HashMap<>();
 
         for (Map<String, Object> row : rows) {
@@ -46,10 +49,11 @@ public class EmployeeDao {
                 employee.setSalary((Integer) row.get("salary"));
                 employee.setEmail((String) row.get("email"));
                 employee.setAddresses(new ArrayList<>());
+                employee.setDepartments(new ArrayList<>());
                 employeeMap.put(employeeId, employee);
             }
 
-            // Check if address is not null before creating an Address object
+            // Map Address if it exists
             if (row.get("address_id") != null) {
                 Address address = new Address();
                 address.setStreet((String) row.get("street"));
@@ -60,18 +64,32 @@ public class EmployeeDao {
                 address.setAddressType((String) row.get("address_type"));
                 employee.getAddresses().add(address);
             }
+
+            // Map Department if it exists
+            if (row.get("department_id") != null) {
+                Department department = new Department();
+                department.setId((Integer) row.get("department_id"));
+                department.setDepartmentName((String) row.get("department_name"));
+                department.setDepartmentEmail((String) row.get("department_email"));
+                department.setDepartmentDescription((String) row.get("department_description"));
+                employee.getDepartments().add(department);
+            }
         }
 
         return new ArrayList<>(employeeMap.values());
     }
 
 
+
     public Employee getEmployeeById(int id) {
-        // SQL query to fetch the employee and their associated addresses
+        // SQL query to fetch the employee, their associated addresses, and departments
         String sql = "SELECT e.id AS employee_id, e.name, e.age, e.salary, e.email, " +
-                "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type " +
+                "a.id AS address_id, a.street, a.city, a.state, a.zip_code, a.phone_number, a.address_type, " +
+                "d.id AS department_id, d.department_name, d.department_email, d.department_description " +
                 "FROM employees e " +
                 "LEFT JOIN address a ON e.id = a.employee_id " +
+                "LEFT JOIN employee_departments ed ON e.id = ed.employee_id " +
+                "LEFT JOIN departments d ON ed.department_id = d.id " +
                 "WHERE e.id = ?";
 
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, id);
@@ -81,39 +99,58 @@ public class EmployeeDao {
             return null;
         }
 
-        // Now, process the results and map them into an Employee object with its associated addresses
-        return mapEmployeeWithAddresses(rows);
+        // Now, process the results and map them into an Employee object with its associated addresses and departments
+        return mapEmployeeWithAddressesAndDepartments(rows);
     }
 
-    private Employee mapEmployeeWithAddresses(List<Map<String, Object>> rows) {
-        // The employee object to return
+    private Employee mapEmployeeWithAddressesAndDepartments(List<Map<String, Object>> rows) {
         Employee employee = new Employee();
 
-        // Since we are joining employees with addresses, each row could represent one employee with one address
-        // We need to handle this by populating the Employee object and its associated Addresses
+        List<Department> departments = new ArrayList<>();
+        List<Address> addresses = new ArrayList<>();
+
+        // Iterate through each row to set employee, address, and department information
         for (Map<String, Object> row : rows) {
-            // First, set employee details
+            // Set employee basic details
             employee.setName((String) row.get("name"));
             employee.setAge((Integer) row.get("age"));
             employee.setSalary((Integer) row.get("salary"));
             employee.setEmail((String) row.get("email"));
 
-            // Initialize the addresses list if not already done
+            // Initialize the lists for addresses and departments if not already initialized
             if (employee.getAddresses() == null) {
                 employee.setAddresses(new ArrayList<>());
             }
+            if (employee.getDepartments() == null) {
+                employee.setDepartments(new ArrayList<>());
+            }
 
-            // Add the address to the employee
-            Address address = new Address();
-            address.setStreet((String) row.get("street"));
-            address.setCity((String) row.get("city"));
-            address.setState((String) row.get("state"));
-            address.setZipCode((Integer) row.get("zip_code"));
-            address.setNumber((String) row.get("phone_number"));
-            address.setAddressType((String) row.get("address_type"));
+            // Map address details if present
+            if (row.get("address_id") != null) {
+                Address address = new Address();
+                address.setStreet((String) row.get("street"));
+                address.setCity((String) row.get("city"));
+                address.setState((String) row.get("state"));
+                address.setZipCode((Integer) row.get("zip_code"));
+                address.setNumber((String) row.get("phone_number"));
+                address.setAddressType((String) row.get("address_type"));
+                addresses.add(address);
+            }
 
-            employee.getAddresses().add(address);
+            // Map department details if present
+            if (row.get("department_id") != null) {
+                Department department = new Department();
+                department.setId((Integer) row.get("department_id"));
+                department.setDepartmentName((String) row.get("department_name"));
+                department.setDepartmentEmail((String) row.get("department_email"));
+                department.setDepartmentDescription((String) row.get("department_description"));
+                departments.add(department);
+            }
         }
+
+        // Set the final lists to the employee
+        employee.setAddresses(addresses);
+        employee.setDepartments(departments);
 
         return employee;
     }
@@ -162,6 +199,21 @@ public boolean updateEmployeeDetails(int id, Employee employee) {
             return false;
         }
     }
+    public boolean updateEmployeeDepartments(int id, List<Department> departments) {
+        // First, delete existing department associations for the employee
+        String deleteSql = "DELETE FROM employee_departments WHERE employee_id = ?";
+        jdbcTemplate.update(deleteSql, id);  // Remove existing department associations
+
+        // Now, insert the new department associations
+        String insertSql = "INSERT INTO employee_departments (employee_id, department_id) VALUES (?, ?)";
+
+        for (Department department : departments) {
+            jdbcTemplate.update(insertSql, id, department.getId());
+        }
+
+        return true;  // Return true if department associations are successfully updated
+    }
+
     public boolean updateEmployeeAddresses(int id, List<Address> addresses) {
         // First, delete existing addresses for the employee
         String deleteSql = "DELETE FROM address WHERE employee_id = ?";
@@ -188,6 +240,16 @@ public boolean updateEmployeeDetails(int id, Employee employee) {
             return false;
         }
     }
+    public boolean deleteEmployeeDepartments(int id) {
+        String sql = "DELETE FROM employee_departments WHERE employee_id = ?";
+        try {
+            int rowsAffected = jdbcTemplate.update(sql, id);
+            return rowsAffected >= 0;  // Return true if rows were deleted
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;  // Return false if there was an error
+        }
+    }
     public boolean deleteEmployee(int id) {
         String sql = "DELETE FROM employees WHERE id = ?";
         try {
@@ -198,6 +260,7 @@ public boolean updateEmployeeDetails(int id, Employee employee) {
             return false;  // Return false if there was an error
         }
     }
+
 
 
 }
