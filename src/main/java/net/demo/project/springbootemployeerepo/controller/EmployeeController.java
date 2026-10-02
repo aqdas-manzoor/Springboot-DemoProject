@@ -22,6 +22,7 @@ public class EmployeeController {
         return new ResponseEntity<>(employeeDao.getAllEmployees(), HttpStatus.OK);
     }
 
+
     // HTTP GET request to get an employee by ID
     @GetMapping("/{id}")
     public ResponseEntity<Employee> getEmployeeById(@PathVariable int id) {
